@@ -28,7 +28,7 @@ O foco é analítico e explicativo, não preditivo. Com o objetivo de compreende
 
 ## Estrutura do projeto
 
----
+```
 
 ├── scripts/
 │ ├── get_dataset.py # Coleta inicial via API
@@ -47,7 +47,7 @@ O foco é analítico e explicativo, não preditivo. Com o objetivo de compreende
 ├── requirements.txt 
 └── README.md 
 
----
+```
 
 ## 1. Extração
 
@@ -173,7 +173,7 @@ Em essência, este é um estudo sobre como o dado se torna conhecimento: um pipe
 ```bash
 git clone https://github.com/kzini/sql_vehicles_analytics.git
 
-cd ***
+cd sql_vehicles_analytics
 ```
 
 2. Instale as dependências:
