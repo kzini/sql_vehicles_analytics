@@ -26,9 +26,10 @@ Com dados reais de anúncios de veículos Honda Civic, este projeto busca respon
 
 O foco é analítico e explicativo, não preditivo. Com o objetivo de compreender o comportamento de mercado por meio de dados limpos e interpretáveis.
 
+## Estrutura do projeto
+
 ---
 
-## Estrutura do projeto
 ├── scripts/
 │ ├── get_dataset.py # Coleta inicial via API
 │ └── get_dataset_2.py # Coleta complementar por cidades específicas
