@@ -1,10 +1,9 @@
 """
 Análise de mercado de veículos Honda Civic no estado da California
 Parte 1:
-Coleta de dados de anúncios usados de Honda Civic na Califórnia via Marketcheck API.
+Coleta de dados de anúncios de veículos Honda Civic usados no estado da Califórnia via Marketcheck API.
 O script faz paginação automática, acumula todos os anúncios em um DataFrame, 
 remove duplicados pelo VIN e salva os dados em CSV. 
-Parte do projeto de portfólio de análise de mercado de veículos.
 """
 
 import requests
@@ -26,8 +25,7 @@ while True:
     params = {
         "make": "Honda",
         "model": "Civic",
-        "state": "CA",
-        
+        "state": "CA",      
         "car_type": "used",
         "year": "2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023",
         "rows": rows_per_request,
@@ -69,6 +67,6 @@ if not df_existing.empty:
 else:
     df_combined = df_new.drop_duplicates(subset=["vin"])
 
-# Salva novamente no mesmo arquivo
 df_combined.to_csv(filename, index=False)
 print(f"Total de registros no CSV: {len(df_combined)}")
+

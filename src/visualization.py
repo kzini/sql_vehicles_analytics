@@ -54,4 +54,18 @@ def plot_line(df, x, y, title, x_label, y_label, figsize):
     plt.ylabel(y_label, fontsize=12)
     plt.xticks(fontsize=11)
     plt.yticks(fontsize=11)
+    plt.tight_layout()
     plt.show()
+
+def plot_heatmap(df, x_label, y_label, title, figsize):
+    plt.figure(figsize=figsize)
+    sns.heatmap(df, annot=True, fmt=".0f", cmap="YlOrRd", linewidths=0.5)
+    plt.title(title, fontsize=16, color='#ae0c00')
+    plt.xlabel(x_label, fontsize=12)
+    plt.ylabel(y_label, fontsize=12)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
+    plt.show()
+
+

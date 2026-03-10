@@ -1,30 +1,24 @@
-# Análise de vendas do mercado de veículos usados Honda Civic no estado da Califórnia
+# Análise do mercado de veículos Honda Civic usados no estado da Califórnia
 
-### End-to-End ETL e análise SQL com dados reais
+### End-to-End ETL e análise SQL com dados reais 
 
 ---
 
 ## Introdução
 
-Este projeto implementa um pipeline completo de **ETL** e **análise exploratória de dados** para investigar o mercado de revenda de veículos Honda Civic no estado da Califórnia (EUA).
-
-Minha motivação com este projeto é simples mas central no meu aprendizado no campo de ciência de dados:
-
-> A capacidade de extrair dados brutos do mundo real, limpá-los, estruturá-los e gerar insights relevantes.
+Este projeto implementa uma pipeline de ETL e análise exploratória utilizando dados reais de anúncios de veículos Honda Civic na Califórnia.
 
 ---
 
 ## Contexto e objetivo
 
 O mercado de veículos usados é sensível a múltiplos fatores como idade, quilometragem e região.
-Com dados reais de anúncios de veículos Honda Civic, este projeto busca responder a perguntas práticas como:
+Utilizando dados reais de anúncios de veículos Honda Civic usados, este projeto busca responder a perguntas como:
 
 - Como o preço varia conforme a idade e a quilometragem do veículo?
 - Existem cidades com preços sistematicamente mais altos ou mais baixos?
 - Quais padrões de depreciação média podem ser identificados entre faixas de quilometragem?
 - Como esses fatores interagem entre si (idade × km × preço)?
-
-O foco é analítico e explicativo, não preditivo. Com o objetivo de compreender o comportamento de mercado por meio de dados limpos e interpretáveis.
 
 ## Estrutura do projeto
 
@@ -34,7 +28,9 @@ O foco é analítico e explicativo, não preditivo. Com o objetivo de compreende
 │ ├── get_dataset.py # Coleta inicial via API
 │ └── get_dataset_2.py # Coleta complementar por cidades específicas
 ├── src/
-│ └── visualization.py # Funções customizadas para gráficos e plots
+│ ├── visualization.py # Funções customizadas para gráficos e plots
+│ ├── data_imputation.py # Funções para imputação de dados faltantes
+│ └── color_categorization.py # Funções para categorização de cores dos veículos
 ├── notebooks/
 │ ├── data_cleaning.ipynb # Limpeza, transformação e preparação dos dados
 │ └── graficos.ipynb # Análise visual e exploração de insights
@@ -51,8 +47,7 @@ O foco é analítico e explicativo, não preditivo. Com o objetivo de compreende
 
 ## 1. Extração
 
-A coleta dos dados foi realizada por meio da Marketcheck API.   
-A versão gratuita da API impunha duas restrições:   
+A coleta dos dados foi realizada por meio da Marketcheck API. Sua versão impunha duas restrições:   
 - Limite de 500 registros por requisição;   
 - Restrição geográfica de área dentro do próprio estado.
 
@@ -65,17 +60,31 @@ Para contornar essas barreiras, foram desenvolvidos dois scripts complementares:
 
 ## 2. Transformação
 
-A etapa de transformação foi realizada em Python.   
-Principais tarefas:
+A etapa de transformação foi realizada em Python. A principais tarefas foram:
 
 - **Seleção de features** — Redução de colunas relevantes para análises;
 - **Padronização métrica** — Conversão de milhas para km, MPG para km/L e polegadas para metros;
-- **Tradução e categorização** —  Devido à minha familiaridade limitada com a terminologia específica da indústria automotiva,
-colunas e alguns valores foram padronizados em português para facilitar a análise;
-- **Imputação** — valores nulos recuperados através de estratégias hierárquicas;
-- **Padronização de valores** — cores, combustíveis e categorias uniformizadas.
+- **Tradução e categorização** —  Devido à minha familiaridade limitada com a terminologia específica da indústria automotiva, colunas e valores foram padronizados em português para facilitar a análise;
+- **Imputação** — Valores nulos foram recuperados através de estratégias hierárquicas;
+- **Padronização de valores** — Cores, combustíveis e categorias foram uniformizados.
 
-Essa transformação tornou os dados consistentes, relacionáveis e prontos para análise SQL.
+### Estratégias de imputação
+
+Para preservar o tamanho da amostra sem introduzir distorções relevantes, foi adotada uma estratégia de imputação hierárquica baseada em contexto.
+
+**Imputação de quilometragem**  
+A quilometragem foi estimada priorizando a combinação cidade × ano de fabricação, utilizando a mediana dentro de cada grupo.
+Para garantir maior robustez estatística, foi aplicada detecção de outliers utilizando o critério 3×IQR, removendo observações estatisticamente discrepantes antes do cálculo das medianas.
+
+Quando não havia dados suficientes dentro da mesma cidade, a imputação utilizou dados agregados do mesmo ano de fabricação em todo o estado da Califórnia.
+
+**Imputação de preço**  
+A imputação de preços seguiu uma lógica hierárquica baseada na similaridade entre veículos:
+- Mesmo ano + versão + cidade + faixa de quilometragem (±20%);
+- Mesmo ano + versão + cidade;
+- Mesmo ano + versão;
+- Mesmo ano;
+- Mediana global do dataset (último recurso).
 
 ---
 
@@ -87,11 +96,9 @@ Após a transformação, os dados foram carregados em um banco **PostgreSQL** lo
 
 - **Criação/cerificação do banco** - Conexão com PostgreSQL e criação da database civic_db;
 - **Definição do Schema** - Criação das tabelas 'revendedores' e 'veículos' relacionados;
-- **Preparação dos DataFrames** - Separação dos dados em estruturas relacionais;
+- **Preparação dos Data Frames** - Separação dos dados em estruturas relacionais;
 - **Exportação para PostgreSQL** - Carga dos dados tratados nas tabelas;
 - **Backup em CSV** - Exportação do dataset processado para arquivo csv.
-
-Essa estrutura permite consultas SQL complexas com junções diretas entre veículos e revendedores, habilitando análises regionais e segmentadas por múltiplas dimensões.
 
 ---
 
@@ -99,7 +106,7 @@ Essa estrutura permite consultas SQL complexas com junções diretas entre veíc
 
 Com o banco populado, as análises foram conduzidas diretamente em SQL para investigar padrões de mercado.
 
-**Objetivos da análise:**
+A análise seguiu os seguintes objetivos:
 
 - Medir tendências de preço médio por idade do veículo;
 - Calcular taxas de depreciação por faixa de quilometragem;
@@ -111,59 +118,66 @@ Com o banco populado, as análises foram conduzidas diretamente em SQL para inve
 
 ## 5. Análise e insights
 
-**Padrões de desvalorização:**
+### Depreciação ao longo do tempo
 
-**Idade como fator primário**   
-Veículos sofrem desvalorização de aproximadamente 63% ao longo de 13 anos, com queda mais acentuada entre 3-4 anos (-13.4%).
+A idade do veículo mostrou-se o fator estrutural mais relevante para a queda de preço.
 
-**Quilometragem como amplificador não linear**   
-A relação entre quilometragem e preço não evolui de forma constante, mas apresenta um padrão de intensificação e saturação. A correlação negativa se fortalece progressivamente até cerca dos 10 anos, 
-quando a quilometragem exerce seu maior impacto sobre o valor do veículo, e perde força em modelos mais antigos, cujo preço já reflete depreciações acumuladas.
+Foi observada uma redução substancial do preço médio ao longo do ciclo de vida do veículo, com a queda mais acentuada ocorrendo nos primeiros anos. Sendo que uma das maiores reduções relativas de preço ocorre entre 3 e 4 anos.
 
-Isso explica por que carros de 10 anos são os mais sensíveis à quilometragem, enquanto carros muito novos ou muito velhos são menos afetados.
+---
 
-**Faixas críticas de desvalorização**   
+### Impacto da quilometragem
 
-Análise comparativa mostra que veículos com 100-200k km têm valor 27% inferior ao de veículos equivalentes com 1-100k km. Esta diferença aumenta para 48,6% na faixa de 200-300k km e atinge 63,4% acima de 300k km, 
-indicando que a quilometragem é um fator crítico na desvalorização."
+A quilometragem apresenta correlação negativa moderada a forte com o preço, variando aproximadamente entre **-0.45 e -0.74** dependendo da idade do veículo.
 
-**Oportunidades Regionais Identificadas:**   
+A análise por idade revela que essa relação não é constante ao longo do ciclo de vida do veículo.
 
-**Mercados premium**   
-Indio ($25.691), Fresno ($24.215) e San Jose ($23.881) lideram os preços mais altos para veículos 1-100k km.
+Há um padrão de intensificação seguido de saturação do impacto da quilometragem:
 
-**Mercados de oportunidade**   
-El Cajon e São Bernadino oferecem melhores condições de compra.
+- **Carros mais novos (2–4 anos)** apresentam correlação negativa mais moderada, indicando que a quilometragem ainda exerce influência limitada no preço.
+- Entre **5 e 10 anos**, a correlação se intensifica progressivamente, atingindo valores próximos de **-0.74**, sugerindo maior sensibilidade do mercado ao desgaste acumulado.
+- Em **veículos mais antigos (10+ anos)**, a correlação volta a diminuir em magnitude, indicando que o impacto marginal da quilometragem se reduz.
 
-**Insights Estratégicos para Negócios:**
+---
 
-**Melhor custo-benefício para compra**   
-Veículos de 4-5 anos com 100-200k km em mercados como Sacramento e Riverside.
+### Faixas de quilometragem e desvalorização
 
-**Oportunidades de arbitragem**   
-Compra em Sacramento ($19.675) e venda em Indio ($25.691) pode gerar diferenças de até 30.5%.
+A comparação entre faixas de quilometragem evidencia diferenças claras de preço médio:
 
-**Riscos identificados**   
-Veículos de 10+ anos com alta quilometragem sofrem desvalorização acelerada e devem ser evitados em estratégias de curto prazo.
+| Faixa de quilometragem | Diferença média de preço |
+|---|---|
+| 1–100k km | referência |
+| 100–200k km | 27% mais barato |
+| 200–300k km | 48.6% mais barato |
+| >300k km | 63.4% mais barato |
 
-**Mercados estáveis**   
-Roseville e Montclair oferecem volume e preços consistentes para operações de média escala.
+---
 
-Estes padrões revelam dinâmicas de precificação distintas entre regiões e segmentos etários, permitindo estratégias segmentadas para maximizar retorno em compra e venda.
+### Variação regional de preços
+
+Foram observadas diferenças relevantes de preço entre as cidades da Califórnia.
+
+Entre veículos com 1–100k km, algumas cidades apresentam preços médios significativamente mais elevados:
+
+**Mercados com preços médios mais altos**
+
+- Indio (~$25.691)
+- Fresno (~$24.215)
+- San Jose (~$23.881)
+
+Por outro lado, algumas regiões apresentam preços médios inferiores:
+
+**Mercados com preços relativamente menores**
+
+- El Cajon
+- Sacramento
+- Riverside
 
 ---
 
 ## Conclusão
 
-Este projeto demonstra o ciclo completo de ciência de dados aplicada — da coleta à interpretação de resultados. Utilizando habilidades fundamentais como:
-
-- **Manipulação de dados brutos** — coleta via API e tratamento de inconsistências;
-- **Limpeza e transformação criteriosa** — padronização, imputação e engenharia de features;
-- **Modelagem relacional em SQL** — estruturação em banco de dados para análise eficiente;
-- **Análise exploratória orientada por hipóteses** — investigação guiada por perguntas de negócio;
-- **Comunicação de resultados** — visualizações claras que contam a história dos dados.
-
-Em essência, este é um estudo sobre como o dado se torna conhecimento: um pipeline que conecta realidade empírica (anúncios de carros) à extração de padrões econômicos verificáveis.
+O projeto demonstra a construção de uma pipeline completa de dados utilizando Python, PostgreSQL e SQL para investigar padrões reais de mercado. A análise revelou padrões claros de depreciação ao longo do tempo, impacto não linear da quilometragem e variações regionais de preço entre cidades da Califórnia.
 
 ---
 
@@ -189,6 +203,7 @@ jupyter notebook notebooks/graficos.ipynb
 
 ---
 
-> Desenvolvido por Bruno Casini  
-> Contato: kzini1701@gmail.com  
-> LinkedIn: https://www.linkedin.com/in/kzini/
+## Autor
+
+**Bruno Casini**  
+LinkedIn: https://www.linkedin.com/in/kzini

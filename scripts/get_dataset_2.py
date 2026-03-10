@@ -1,5 +1,5 @@
 """
-Análise de mercado de veículos Honda Civic no estado da California
+Análise de mercado de veículos Honda Civic usados no estado da California
 Parte 1.1: Coleta de dados complementar
 """
 
@@ -70,3 +70,4 @@ else:
 
 df_combined.to_csv(filename, index=False)
 print(f"Total de registros no CSV: {len(df_combined)}")
+
