@@ -6,19 +6,7 @@
 
 ## Introdução
 
-Este projeto implementa uma pipeline de ETL e análise exploratória utilizando dados reais de anúncios de veículos Honda Civic na Califórnia.
-
----
-
-## Contexto e objetivo
-
-O mercado de veículos usados é sensível a múltiplos fatores como idade, quilometragem e região.
-Utilizando dados reais de anúncios de veículos Honda Civic usados, este projeto busca responder a perguntas como:
-
-- Como o preço varia conforme a idade e a quilometragem do veículo?
-- Existem cidades com preços sistematicamente mais altos ou mais baixos?
-- Quais padrões de depreciação média podem ser identificados entre faixas de quilometragem?
-- Como esses fatores interagem entre si (idade × km × preço)?
+Este projeto implementa uma pipeline de ETL e análise exploratória utilizando dados reais de anúncios de veículos Honda Civic na Califórnia, para então identificar padrões de preço e depreciação.
 
 ## Estrutura do projeto
 
@@ -40,14 +28,12 @@ Utilizando dados reais de anúncios de veículos Honda Civic usados, este projet
 │ └── raw/ # Dados brutos da API MarketCheck
 ├── sql/
 │ └── consultas_sql.sql # Consultas SQL de exploração
-├── requirements.txt 
-└── README.md 
 
 ```
 
 ## 1. Extração
 
-A coleta dos dados foi realizada por meio da Marketcheck API. Sua versão impunha duas restrições:   
+A coleta dos dados foi realizada por meio da Marketcheck API. Sua versão gratuita impunha duas restrições:   
 - Limite de 500 registros por requisição;   
 - Restrição geográfica de área dentro do próprio estado.
 
@@ -60,23 +46,23 @@ Para contornar essas barreiras, foram desenvolvidos dois scripts complementares:
 
 ## 2. Transformação
 
-A etapa de transformação foi realizada em Python. A principais tarefas foram:
+As principais tarefas realizadas na etapa de transformação foram:
 
 - **Seleção de features** — Redução de colunas relevantes para análises;
 - **Padronização métrica** — Conversão de milhas para km, MPG para km/L e polegadas para metros;
 - **Tradução e categorização** —  Devido à minha familiaridade limitada com a terminologia específica da indústria automotiva, colunas e valores foram padronizados em português para facilitar a análise;
 - **Imputação** — Valores nulos foram recuperados através de estratégias hierárquicas;
-- **Padronização de valores** — Cores, combustíveis e categorias foram uniformizados.
+- **Padronização** — Valores e categorias foram uniformizados.
 
-### Estratégias de imputação
+### Estratégias de imputação de dados faltantes
 
-Para preservar o tamanho da amostra sem introduzir distorções relevantes, foi adotada uma estratégia de imputação hierárquica baseada em contexto.
+Foi adotada uma estratégia de imputação hierárquica baseada em contexto.
 
 **Imputação de quilometragem**  
 A quilometragem foi estimada priorizando a combinação cidade × ano de fabricação, utilizando a mediana dentro de cada grupo.
 Para garantir maior robustez estatística, foi aplicada detecção de outliers utilizando o critério 3×IQR, removendo observações estatisticamente discrepantes antes do cálculo das medianas.
 
-Quando não havia dados suficientes dentro da mesma cidade, a imputação utilizou dados agregados do mesmo ano de fabricação em todo o estado da Califórnia.
+Quando não havia dados suficientes dentro da mesma cidade, a imputação utilizou dados agregados do mesmo ano de fabricação em todo o estado da Califórnia e por fim a mediana global do dataset.
 
 **Imputação de preço**  
 A imputação de preços seguiu uma lógica hierárquica baseada na similaridade entre veículos:
@@ -92,7 +78,7 @@ A imputação de preços seguiu uma lógica hierárquica baseada na similaridade
 
 Após a transformação, os dados foram carregados em um banco **PostgreSQL** local.
 
-**Fluxo de Carga:**
+**Fluxo de carga:**
 
 - **Criação/cerificação do banco** - Conexão com PostgreSQL e criação da database civic_db;
 - **Definição do Schema** - Criação das tabelas 'revendedores' e 'veículos' relacionados;
@@ -128,21 +114,21 @@ Foi observada uma redução substancial do preço médio ao longo do ciclo de vi
 
 ### Impacto da quilometragem
 
-A quilometragem apresenta correlação negativa moderada a forte com o preço, variando aproximadamente entre **-0.45 e -0.74** dependendo da idade do veículo.
+A quilometragem apresenta correlação negativa moderada a forte com o preço, dependendo da idade do veículo.
 
 A análise por idade revela que essa relação não é constante ao longo do ciclo de vida do veículo.
 
 Há um padrão de intensificação seguido de saturação do impacto da quilometragem:
 
 - **Carros mais novos (2–4 anos)** apresentam correlação negativa mais moderada, indicando que a quilometragem ainda exerce influência limitada no preço.
-- Entre **5 e 10 anos**, a correlação se intensifica progressivamente, atingindo valores próximos de **-0.74**, sugerindo maior sensibilidade do mercado ao desgaste acumulado.
+- Entre **5 e 10 anos**, a correlação se intensifica progressivamente, sugerindo maior sensibilidade do mercado ao desgaste acumulado.
 - Em **veículos mais antigos (10+ anos)**, a correlação volta a diminuir em magnitude, indicando que o impacto marginal da quilometragem se reduz.
 
 ---
 
 ### Faixas de quilometragem e desvalorização
 
-A comparação entre faixas de quilometragem evidencia diferenças claras de preço médio:
+A comparação entre faixas de quilometragem evidencia diferenças claras de preço médio.
 
 | Faixa de quilometragem | Diferença média de preço |
 |---|---|
@@ -157,21 +143,11 @@ A comparação entre faixas de quilometragem evidencia diferenças claras de pre
 
 Foram observadas diferenças relevantes de preço entre as cidades da Califórnia.
 
-Entre veículos com 1–100k km, algumas cidades apresentam preços médios significativamente mais elevados:
+Entre veículos com 1–100k km, algumas cidades apresentam preços médios significativamente mais elevados.
 
-**Mercados com preços médios mais altos**
+**Mercados com preços médios mais altos**: Indio, Fresno e San Jose
 
-- Indio (~$25.691)
-- Fresno (~$24.215)
-- San Jose (~$23.881)
-
-Por outro lado, algumas regiões apresentam preços médios inferiores:
-
-**Mercados com preços relativamente menores**
-
-- El Cajon
-- Sacramento
-- Riverside
+**Mercados com preços relativamente menores**: El Cajon, Sacramento e Riverside
 
 ---
 

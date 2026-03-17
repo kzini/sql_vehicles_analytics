@@ -57,11 +57,10 @@ WITH base AS (
 SELECT
     faixa_km,
     CASE 
-    WHEN faixa_km = '1-100k' THEN 'Base (referência)'
-    ELSE CAST(ROUND(100 * (1 - preco_medio / 
+        WHEN faixa_km = '1-100k' THEN 'Base (referência)'
+        ELSE CAST(ROUND(100 * (1 - preco_medio / 
          (SELECT preco_medio FROM base WHERE faixa_km = '1-100k')), 1) AS TEXT)
-    END AS pct_desvalorizacao,
-    n
+    END AS pct_desvalorizacao, n
 FROM base
 ORDER BY 
     CASE faixa_km
