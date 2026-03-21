@@ -37,7 +37,7 @@ SELECT
     ROUND(AVG(preco_usd),2) AS preco_medio 
 FROM veiculos
 GROUP BY idade
-ORDER BY 1 DESC
+ORDER BY idade DESC;
 
 -- 2.2 Depreciação percentual por faixa de quilometragem
 WITH base AS (
@@ -72,40 +72,53 @@ ORDER BY
     END;
 
 -- 3. Outliers por idade e quilometragem
--- Considera outliers veículos com preço 2 desvios-padrão abaixo da média do grupo (idade + faixa de km)
-WITH grupo AS (
+-- 3.1 Cria view com veículos outliers (preço 2 desvios abaixo da média por idade e faixa de km)
+DROP VIEW IF EXISTS veiculos_outliers_view;
+CREATE VIEW veiculos_outliers_view AS
+-- CTE 1: Classifica cada veículo por faixas de quilometragem
+WITH veiculos_classificados AS (
+    SELECT 
+        v.*,
+        CASE
+            WHEN v.quilometragem < 100000 THEN '1-100k'
+            WHEN v.quilometragem < 200000 THEN '100-200k'
+            WHEN v.quilometragem < 300000 THEN '200-300k'
+            WHEN v.quilometragem < 400000 THEN '300-400k'
+            ELSE '400k+'
+        END AS faixa_km
+    FROM veiculos v
+),  
+-- CTE 2: Calcula média e desvio padrão por grupo (idade + faixa de km)
+grupo_estatisticas AS (
     SELECT 
         idade,
-        CASE
-            WHEN quilometragem < 100000 THEN '1-100k'
-            WHEN quilometragem < 200000 THEN '100-200k'
-            WHEN quilometragem < 300000 THEN '200-300k'
-            WHEN quilometragem < 400000 THEN '300-400k'
-            ELSE '400k+'
-        END AS faixa_km,
+        faixa_km,
         AVG(preco_usd) AS preco_medio,
         STDDEV(preco_usd) AS desvio
-    FROM veiculos
+    FROM veiculos_classificados
     GROUP BY idade, faixa_km
 )
+-- Seleciona os outliers para a view
 SELECT 
     v.chassi,
+    v.id_revendedor,
+    v.preco_usd,
     v.idade,
     v.quilometragem,
-    v.preco_usd,
-    ROUND(g.preco_medio, 2) as preco_medio, 
     ROUND((1 - (v.preco_usd / g.preco_medio)) * 100, 2) AS pct_abaixo_media
-FROM veiculos v
-JOIN grupo g ON v.idade = g.idade
-    AND CASE
-       WHEN v.quilometragem < 100000 THEN '1-100k'
-       WHEN v.quilometragem < 200000 THEN '100-200k'
-       WHEN v.quilometragem < 300000 THEN '200-300k'
-       WHEN v.quilometragem < 400000 THEN '300-400k'
-       ELSE '400k+'
-     END = g.faixa_km
--- Considera outliers veículos com preço 2 desvios-padrão abaixo da média (por idade + faixa de km)
-WHERE v.preco_usd < (g.preco_medio - 2 * g.desvio)
+FROM veiculos_classificados v
+JOIN grupo_estatisticas g 
+    ON v.idade = g.idade AND v.faixa_km = g.faixa_km
+WHERE v.preco_usd < (g.preco_medio - 2 * g.desvio);
+
+-- 3.2 Consulta a view para ver os outliers
+SELECT 
+    chassi,
+    idade,
+    quilometragem,
+    preco_usd,
+    pct_abaixo_media
+FROM veiculos_outliers_view
 ORDER BY pct_abaixo_media DESC;
 
 -- 4. Análise de preço por cidade
@@ -121,50 +134,14 @@ HAVING COUNT(v.chassi) >= 30  -- Exclui amostras pequenas
 ORDER BY preco_medio DESC;
 
 -- 5. Outliers de preço por idade, faixa de quilometragem e cidade
--- Junta veículos abaixo da média com revendedores para pegar a cidade
-WITH veiculos_outliers AS (
-    SELECT 
-        v.chassi,
-        v.id_revendedor,
-        v.preco_usd,
-        v.idade,
-        v.quilometragem,
-        ROUND((1 - (v.preco_usd / g.preco_medio)) * 100, 2) AS pct_abaixo_media
-    FROM veiculos v
-    JOIN (
-        SELECT 
-            idade,
-            CASE
-                WHEN quilometragem < 100000 THEN '1-100k'
-                WHEN quilometragem < 200000 THEN '100-200k'
-                WHEN quilometragem < 300000 THEN '200-300k'
-                WHEN quilometragem < 400000 THEN '300-400k'
-                ELSE '400k+'
-            END AS faixa_km,
-            AVG(preco_usd) AS preco_medio,
-            STDDEV(preco_usd) AS desvio
-        FROM veiculos
-        GROUP BY idade, faixa_km
-    ) g
-    ON v.idade = g.idade
-    AND CASE
-        WHEN v.quilometragem < 100000 THEN '1-100k'
-        WHEN v.quilometragem < 200000 THEN '100-200k'
-        WHEN v.quilometragem < 300000 THEN '200-300k'
-        WHEN v.quilometragem < 400000 THEN '300-400k'
-        ELSE '400k+'
-    END = g.faixa_km
-    WHERE v.preco_usd < (g.preco_medio - 2 * g.desvio)
-)
--- Calcula percentual por cidade
 SELECT 
     r.cidade_revendedor,
     COUNT(o.chassi) AS n_abaixo_media,
     COUNT(v.chassi) AS total_veiculos,
-    ROUND(100.0 * COUNT(o.chassi) / NULLIF(COUNT(v.chassi),0), 2) AS pct_abaixo_media
+    ROUND(100.0 * COUNT(o.chassi) / NULLIF(COUNT(v.chassi), 0), 2) AS pct_abaixo_media
 FROM veiculos v
 JOIN revendedores r ON v.id_revendedor = r.id_revendedor
-LEFT JOIN veiculos_outliers o ON v.chassi = o.chassi
+LEFT JOIN veiculos_outliers_view o ON v.chassi = o.chassi
 GROUP BY r.cidade_revendedor
 HAVING COUNT(v.chassi) >= 10 
 ORDER BY pct_abaixo_media DESC;
