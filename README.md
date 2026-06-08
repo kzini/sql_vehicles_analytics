@@ -1,3 +1,8 @@
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![Pandas](https://img.shields.io/badge/Pandas-2.2-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
+![SQL](https://img.shields.io/badge/SQL-Analytics-orange)
+
 # Análise do mercado de veículos Honda Civic usados no estado da Califórnia
 
 ### End-to-End ETL e análise SQL com dados reais 
@@ -11,7 +16,6 @@ Este projeto implementa uma pipeline de ETL e análise exploratória utilizando 
 ## Estrutura do projeto
 
 ```
-
 ├── scripts/
 │ ├── get_dataset.py # Coleta inicial via API
 │ └── get_dataset_2.py # Coleta complementar por cidades específicas
@@ -27,17 +31,15 @@ Este projeto implementa uma pipeline de ETL e análise exploratória utilizando 
 │ ├── processed/ # Dados limpos e estruturados
 │ └── raw/ # Dados brutos da API MarketCheck
 ├── sql/
-│ └── consultas_sql.sql # Consultas SQL de exploração
+└── consultas_sql.sql # Consultas SQL de exploração
 
 ```
 
 ## 1. Extração
 
-A coleta dos dados foi realizada por meio da Marketcheck API. Sua versão gratuita impunha duas restrições:   
-- Limite de 500 registros por requisição;   
-- Restrição geográfica de área dentro do próprio estado.
+A coleta dos dados foi realizada por meio da Marketcheck API.  Sua versão gratuita impõe restrições como o limite de 500 registros por requisição e restrição geográfica de área dentro do próprio estado.
 
-Para contornar essas barreiras, foram desenvolvidos dois scripts complementares:
+Para contornar essas barreiras, desenvolvi dois scripts complementares:
 
 - `get_dataset.py` - Coleta inicial ampla;
 - `get_dataset_2.py` - Coleta com seleção manual de cidades para enriquecer o dataset.
